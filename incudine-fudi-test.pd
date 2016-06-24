@@ -1,0 +1,31 @@
+#N canvas 782 106 580 302 10;
+#X obj 31 200 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X obj 51 172 netreceive 3012;
+#X obj 51 198 print 3012;
+#X obj 29 106 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X obj 49 80 netreceive -u 3008;
+#X obj 49 105 print 3008;
+#X obj 264 219 netsend;
+#X floatatom 264 241 5 0 0 0 - - -, f 5;
+#X floatatom 314 242 5 0 0 0 - - -, f 5;
+#X msg 264 72 disconnect \, connect localhost 3015;
+#X msg 298 158 send 1 2 3 4;
+#X msg 308 180 send 1 2 3 4 5;
+#X msg 290 136 send 5 4 3 2 1 2 3;
+#X text 291 101 send various messages by clicking in the message boxes
+below:;
+#X text 264 50 click to (re)connect to external receiver;
+#X text 46 53 udp receive;
+#X text 50 150 tcp receive;
+#X connect 1 0 0 0;
+#X connect 1 0 2 0;
+#X connect 4 0 3 0;
+#X connect 4 0 5 0;
+#X connect 6 0 7 0;
+#X connect 6 1 8 0;
+#X connect 9 0 6 0;
+#X connect 10 0 6 0;
+#X connect 11 0 6 0;
+#X connect 12 0 6 0;
