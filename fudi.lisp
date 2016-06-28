@@ -190,8 +190,10 @@ messages. Intitalize with an open parnethesis."
 
 (defun remove-receiver (stream)
   (declare (type input-stream stream))
-  (stop-fudi-recv (input-stream-receiver stream))
-  (incudine::remove-receiver stream))
+  (if (and stream (input-stream-receiver stream))
+      (progn
+        (stop-fudi-recv (input-stream-receiver stream))
+        (incudine::remove-receiver stream))))
 
 (defun open (&key (host *host*) (port *in-port*) (direction :input)
              (protocol :tcp))
@@ -210,11 +212,14 @@ messages. Intitalize with an open parnethesis."
                            (incudine.external:errno-to-string))))))
 
 (defun close (stream)
-  (if (input-stream-p stream)
+  (if stream
       (progn
-        (remove-receiver stream)
-        (stop-socket-server stream)
-        (usocket:socket-close (stream-socket stream)))))
+        (if (input-stream-p stream)
+                 (progn
+                   (remove-receiver stream)
+                   (stop-socket-server stream)))
+        (if (stream-socket stream)
+            (usocket:socket-close (stream-socket stream))))))
 
 (defun send (stream msg)
   (if (output-stream-p stream)

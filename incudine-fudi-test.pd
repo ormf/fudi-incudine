@@ -1,24 +1,27 @@
-#N canvas 782 106 580 302 10;
-#X obj 31 200 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+#N canvas 424 406 655 494 10;
+#X obj 29 157 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
 -1;
-#X obj 51 172 netreceive 3012;
-#X obj 51 198 print 3012;
+#X obj 49 129 netreceive 3012;
+#X obj 49 155 print 3012;
 #X obj 29 106 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
 -1;
 #X obj 49 80 netreceive -u 3008;
 #X obj 49 105 print 3008;
-#X obj 264 219 netsend;
-#X floatatom 264 241 5 0 0 0 - - -, f 5;
-#X floatatom 314 242 5 0 0 0 - - -, f 5;
-#X msg 264 72 disconnect \, connect localhost 3015;
-#X msg 298 158 send 1 2 3 4;
-#X msg 308 180 send 1 2 3 4 5;
-#X msg 290 136 send 5 4 3 2 1 2 3;
-#X text 291 101 send various messages by clicking in the message boxes
-below:;
-#X text 264 50 click to (re)connect to external receiver;
-#X text 46 53 udp receive;
-#X text 50 150 tcp receive;
+#X obj 278 201 netsend;
+#X floatatom 278 223 5 0 0 0 - - -, f 5;
+#X floatatom 324 223 5 0 0 0 - - -, f 5;
+#X msg 264 78 disconnect \, connect localhost 3015;
+#X msg 298 132 send 1 2 3 4;
+#X msg 308 154 send 1 2 3 4 5;
+#X msg 290 110 send 5 4 3 2 1 2 3;
+#X text 254 51 click to connect to external receiver;
+#X obj 50 184 netreceive -u -b 3003;
+#X obj 50 211 print udp-binary;
+#X obj 30 213 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X obj 476 330 notein;
+#X obj 476 352 pack 0 0 0;
+#X obj 476 374 print notein;
 #X connect 1 0 0 0;
 #X connect 1 0 2 0;
 #X connect 4 0 3 0;
@@ -29,3 +32,9 @@ below:;
 #X connect 10 0 6 0;
 #X connect 11 0 6 0;
 #X connect 12 0 6 0;
+#X connect 14 0 15 0;
+#X connect 14 0 16 0;
+#X connect 17 0 18 0;
+#X connect 17 1 18 1;
+#X connect 17 2 18 2;
+#X connect 18 0 19 0;

@@ -8,8 +8,8 @@
 (in-package :incudine.scratch)
 
 (defvar *fudi-in* nil)
-(defvar *fudi-out* nil)
-(defvar *fudi-out2* nil)
+(defvar *fudi-out-udp* nil)
+(defvar *fudi-out-tcp* nil)
 
 (setf *fudi-in* (fudi:open :port 3015))
 (setf *fudi-out-udp* (fudi:open :port 3008 :protocol :udp :direction :output))
@@ -27,24 +27,6 @@
    (lambda (msg)
      (format *debug-io* "~a~%" msg))))
 
-(incudine:remove-responder *fudi-responder*)
-
-(defvar *fudi-responder2*
-  (incudine::make-fudi-responder
-   *fudi-in*
-   (lambda (msg)
-     (fudi:send *fudi-out-tcp* msg))))
-
-(incudine:remove-responder *fudi-responder2*)
-
-(setf *fudi-responder2*
-      (incudine::make-fudi-responder
-       *fudi-in*
-       (lambda (msg)
-         (fudi:send *fudi-out-udp* msg))))
-
-(incudine:recv-stop *fudi-in*)
-(incudine:recv-start *fudi-in*)
 
 (incudine:remove-responder *fudi-responder2*)
 
