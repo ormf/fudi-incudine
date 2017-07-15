@@ -48,24 +48,22 @@
 
 (defun %open (stream)
   (declare (type stream stream))
-  (cond ((input-stream-p stream)
-         )
-        (T
-         (let ((socket (usocket:socket-connect 
-                         (stream-host stream) (stream-port stream)
-                         :protocol (case (stream-protocol stream)
-                                     (:udp :datagram)
-                                     (t :stream)))))
-           (setf (stream-socket stream) socket)
-           (setf (output-stream-send-fn stream)
-                 (case (stream-protocol stream)
-                   (:tcp (let ((s (usocket:socket-stream socket)))
-                           (lambda (&rest args)
-                             (format s "~{~a~^ ~};~%" args)
-                             (force-output s))))
-                   (t (lambda (&rest args)
-                        (let ((str (format nil "~{~a~^ ~};~%" args)))
-                          (usocket:socket-send socket str (length str))))))))))
+  (cond ((input-stream-p stream) nil)
+        (T (let ((socket (usocket:socket-connect 
+                          (stream-host stream) (stream-port stream)
+                          :protocol (case (stream-protocol stream)
+                                      (:udp :datagram)
+                                      (t :stream)))))
+             (setf (stream-socket stream) socket)
+             (setf (output-stream-send-fn stream)
+                   (case (stream-protocol stream)
+                     (:tcp (let ((s (usocket:socket-stream socket)))
+                             (lambda (&rest args)
+                               (format s "~{~a~^ ~};~%" args)
+                               (force-output s))))
+                     (t (lambda (&rest args)
+                          (let ((str (format nil "~{~a~^ ~};~%" args)))
+                            (usocket:socket-send socket str (length str))))))))))
   stream)
  
 #|
@@ -243,5 +241,5 @@ messages. Intitalize with an open parnethesis."
   (declare (type function function))
   (incudine:make-responder stream function))
 
-
-
+(defun incudine::remove-fudi-responder (resp)
+  (incudine:remove-responder resp))

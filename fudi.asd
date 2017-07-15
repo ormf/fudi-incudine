@@ -20,7 +20,7 @@
 
 (asdf:defsystem #:fudi
   :serial t
-  :depends-on (:usocket :bordeaux-threads :sb-concurrency :incudine)
+  :depends-on (:usocket :usocket-server :bordeaux-threads :sb-concurrency :incudine)
   :description "connect sbcl to puredata netsend/receive"
   :author "Orm Finnendahl"
   :license "GPL v2.0 or later, use at own risk, no warranties whatsoever."
