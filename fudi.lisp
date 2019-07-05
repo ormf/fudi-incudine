@@ -35,6 +35,7 @@
 
 (defstruct (input-stream (:include stream))
   (server-running? nil)
+  (server-socket nil)
   (receiver nil)
   (id (format nil "~s" (gensym)) :type simple-string))
 
@@ -53,7 +54,7 @@
                           (stream-host stream) (stream-port stream)
                           :protocol (case (stream-protocol stream)
                                       (:udp :datagram)
-                                      (t :stream)))))
+                                       (t :stream)))))
              (setf (stream-socket stream) socket)
              (setf (output-stream-send-fn stream)
                    (case (stream-protocol stream)
@@ -101,14 +102,14 @@
                                :in-new-thread t
                                :name "Fudi-Responder"
 ;                               :protocol protocol
-                               :reuse-address t
+                               :reuseaddress t
                                :multi-threading t)))
 
 |#
 
 (defun make-adjustable-string ()
   "create an adjustable string to store incoming fudi
-messages. Intitalize with an open parnethesis."
+messages. Intitalize with an open parenthesis."
   (make-array 1
               :fill-pointer 1
               :adjustable t
@@ -151,26 +152,29 @@ messages. Intitalize with an open parnethesis."
 
 (defun stop-socket-server (stream)
   (declare (type stream stream))
+;;  (break "stream: ~a id: ~a" stream (input-stream-id stream))
   (destroy-named-thread (input-stream-id stream))
   (setf (input-stream-server-running? stream) nil))
 
 (defun start-socket-server (stream)
   (if (input-stream-p stream)
-      (let ((server
-             (usocket:socket-server
-              (stream-host stream)
-              (stream-port stream) #'default-socket-handler (list stream) 
-              :in-new-thread t
-              :name (input-stream-id stream)
-              :protocol (case (stream-protocol stream)
-                          (:udp :datagram)
-                          (:tcp :stream)
-                          (t (error "protocol: ~s not supported!"
-                                    (stream-protocol stream))))
-              :reuse-address t
-              :multi-threading t)))
-        (if server (setf (input-stream-server-running? stream) t))
-        server)))
+      (multiple-value-bind (thread server-socket)
+          (usocket:socket-server
+           (stream-host stream)
+           (stream-port stream) #'default-socket-handler (list stream) 
+           :in-new-thread t
+           :name (input-stream-id stream)
+           :protocol (case (stream-protocol stream)
+                       (:udp :datagram)
+                       (:tcp :stream)
+                       (t (error "protocol: ~s not supported!"
+                                 (stream-protocol stream))))
+           :reuse-address t
+           :multi-threading t)
+        (if thread (progn
+                     (setf (input-stream-server-running? stream) t)
+                     (setf (input-stream-server-socket stream) server-socket)))
+        thread)))
 
 (defun start-fudi-recv (receiver)
   (let ((stream (incudine::receiver-stream receiver)))
@@ -178,8 +182,7 @@ messages. Intitalize with an open parnethesis."
             (start-socket-server stream))
         (progn
           (setf (input-stream-receiver stream) receiver)
-          (setf (incudine::receiver-status receiver) t)
-          ))
+          (setf (incudine::receiver-status receiver) t)))
     receiver))
 
 (defun stop-fudi-recv (receiver)
@@ -213,15 +216,21 @@ messages. Intitalize with an open parnethesis."
   (if stream
       (progn
         (if (input-stream-p stream)
-                 (progn
-                   (remove-receiver stream)
-                   (stop-socket-server stream)))
+            (progn
+;;              (break "closing input: ~a" stream)
+              (remove-receiver stream)
+              (stop-socket-server stream)
+              (usocket:socket-close (input-stream-server-socket stream))))
         (if (stream-socket stream)
             (usocket:socket-close (stream-socket stream))))))
 
 (defun send (stream msg)
   (if (output-stream-p stream)
       (apply (output-stream-send-fn stream) msg)))
+
+(defun stream-open? (s)
+  (and s (open-stream-p
+          (slot-value (fudi::stream-socket s) 'usocket::stream))))
 
 (defmethod incudine::valid-input-stream-p ((obj input-stream)) t)
 (defmethod incudine::valid-input-stream-p ((obj output-stream)) nil)

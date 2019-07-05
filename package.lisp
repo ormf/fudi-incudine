@@ -25,5 +25,6 @@
                 #:non-negative-fixnum #:with-gensyms)
   (:shadow #:open #:close #:stream #:input-stream-p #:output-stream-p)
   (:export #:open #:close #:send #:stream #:input-stream #:output-stream
-           #:stream-p #:input-stream-p #:output-stream-p))
+           #:stream-p #:input-stream-p #:output-stream-p
+           #:stream-open?))
 
