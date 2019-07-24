@@ -224,13 +224,17 @@ messages. Intitalize with an open parenthesis."
         (if (stream-socket stream)
             (usocket:socket-close (stream-socket stream))))))
 
-(defun send (stream msg)
-  (if (output-stream-p stream)
-      (apply (output-stream-send-fn stream) msg)))
-
 (defun stream-open? (s)
   (and s (open-stream-p
           (slot-value (fudi::stream-socket s) 'usocket::stream))))
+
+(defun send (stream msg)
+  (if (and (output-stream-p stream) (stream-open? stream))
+      (apply (output-stream-send-fn stream) msg)))
+
+;;;(assert)
+
+
 
 (defmethod incudine::valid-input-stream-p ((obj input-stream)) t)
 (defmethod incudine::valid-input-stream-p ((obj output-stream)) nil)
