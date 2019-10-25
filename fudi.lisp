@@ -29,7 +29,8 @@
 (defstruct (stream (:constructor %make-stream)(:copier nil))
   (host *host* :type simple-string)
   (port *in-port* :type (unsigned-byte 16))
-  (protocol :udp :type (member :udp :tcp))
+  (protocol :tcp :type (member :udp :tcp))
+  (type :string :type (member :string :binary))
   (direction :input :type (member :input :output))
   (socket nil))
 
@@ -131,18 +132,58 @@ messages. Intitalize with an open parenthesis."
                        (vector-push-extend #\) s) ;; add close parenthesis
                        (read-from-string s)))))
 
-(defun default-socket-handler (socket-stream fudi-stream)
+(defun parse-fudi-string (str)
+  (read-from-string
+   (format nil "(~a)"
+           (map 'string #'code-char str))))
+
+;;; (parse-fudi-string #(49 50 32 49 52))
+
+
+
+(defun default-udp-string-socket-handler (socket-data fudi-stream)
+  (declare (type vector socket-data) (type input-stream fudi-stream))
+  (let ((receiver (input-stream-receiver fudi-stream)))
+    (if (incudine::receiver-status receiver)
+        (handler-case
+            (dolist (fn (incudine::receiver-functions receiver))
+              (funcall (the function fn) (parse-fudi-string socket-data)))
+          (condition (c) (incudine::nrt-msg error "~A" c))))))
+
+(defun default-udp-binary-socket-handler (socket-data fudi-stream)
+  (declare (type vector socket-data) (type input-stream fudi-stream))
+  (let ((receiver (input-stream-receiver fudi-stream)))
+    (if (incudine::receiver-status receiver)
+        (handler-case
+            (dolist (fn (incudine::receiver-functions receiver))
+              (funcall (the function fn) socket-data))
+          (condition (c) (incudine::nrt-msg error "~A" c))))))
+
+(defun default-tcp-binary-socket-handler (socket-stream fudi-stream)
   (declare (type cl:stream socket-stream) (type input-stream fudi-stream))
   (let ((s (make-adjustable-string)))
     (loop
-       for msg = (fudi-read-message s socket-stream)
-       while msg
-       do (let ((receiver (input-stream-receiver fudi-stream)))
-            (if (incudine::receiver-status receiver)
-                (handler-case
-                    (dolist (fn (incudine::receiver-functions receiver))
-                      (funcall (the function fn) msg))
-                  (condition (c) (incudine::nrt-msg error "~A" c))))))))
+      for msg = (fudi-read-message s socket-stream)
+      while msg
+      do (let ((receiver (input-stream-receiver fudi-stream)))
+           (if (incudine::receiver-status receiver)
+               (handler-case
+                   (dolist (fn (incudine::receiver-functions receiver))
+                     (funcall (the function fn) msg))
+                 (condition (c) (incudine::nrt-msg error "~A" c))))))))
+
+(defun default-tcp-string-socket-handler (socket-stream fudi-stream)
+  (declare (type cl:stream socket-stream) (type input-stream fudi-stream))
+  (let ((s (make-adjustable-string)))
+    (loop
+      for msg = (fudi-read-message s socket-stream)
+      while msg
+      do (let ((receiver (input-stream-receiver fudi-stream)))
+           (if (incudine::receiver-status receiver)
+               (handler-case
+                   (dolist (fn (incudine::receiver-functions receiver))
+                     (funcall (the function fn) msg))
+                 (condition (c) (incudine::nrt-msg error "~A" c))))))))
 
 (defun destroy-named-thread (name)
   (loop
@@ -156,12 +197,23 @@ messages. Intitalize with an open parenthesis."
   (destroy-named-thread (input-stream-id stream))
   (setf (input-stream-server-running? stream) nil))
 
+(defun get-socket-handler (stream)
+  (case (stream-protocol stream)
+    (:tcp (case (stream-type stream)
+            (:string #'default-tcp-string-socket-handler)
+            (:binary #'default-tcp-binary-socket-handler)))
+    (:udp (case (stream-type stream)
+            (:string #'default-udp-string-socket-handler)
+            (:binary #'default-udp-binary-socket-handler)))))
+
 (defun start-socket-server (stream)
   (if (input-stream-p stream)
       (multiple-value-bind (thread server-socket)
           (usocket:socket-server
            (stream-host stream)
-           (stream-port stream) #'default-socket-handler (list stream) 
+           (stream-port stream)
+           (get-socket-handler stream)
+           (list stream) 
            :in-new-thread t
            :name (input-stream-id stream)
            :protocol (case (stream-protocol stream)
@@ -197,14 +249,17 @@ messages. Intitalize with an open parenthesis."
         (incudine::remove-receiver stream))))
 
 (defun open (&key (host *host*) (port *in-port*) (direction :input)
-             (protocol :tcp))
+             (protocol :tcp) (type :string))
   (declare (type (member :input :output) direction)
-           (type (member :udp :tcp) protocol) (type simple-string host))
+           (type (member :udp :tcp) protocol)
+           (type (member :string :binary) type)
+           (type simple-string host))
   (let* ((obj (funcall (if (eq direction :input)
                            #'make-input-stream
                            #'make-output-stream)
                        :host host :port port :protocol protocol
-                       :direction direction)))
+                       :direction direction
+                       :type type)))
     (handler-case
         (%open obj)
       (error (c)
@@ -240,7 +295,7 @@ messages. Intitalize with an open parenthesis."
 (defmethod incudine::valid-input-stream-p ((obj output-stream)) nil)
 
 (defmethod incudine::recv-start ((stream input-stream)
-                       &key (priority incudine::*receiver-default-priority*))
+                                 &key (priority incudine::*receiver-default-priority*))
   (incudine::add-receiver stream (or (incudine:receiver stream)
                                      (incudine::make-receiver stream))
                           #'start-fudi-recv priority))
