@@ -48,12 +48,12 @@
           (stream-direction obj) (stream-protocol obj)
           (stream-host obj) (stream-port obj)))
 
-(defun %open (stream &key element-type)
+(defun %open (stream &rest args)
   (declare (type stream stream))
   (cond ((input-stream-p stream) nil)
         (T (let ((socket (usocket:socket-connect
                           (stream-host stream) (stream-port stream)
-                          :element-type element-type
+                          :element-type (getf args :element-type)
                           :protocol (case (stream-protocol stream)
                                       (:udp :datagram)
                                        (t :stream)))))
@@ -68,7 +68,7 @@
                           (let ((str (format nil "~{~a~^ ~};~%" args)))
                             (usocket:socket-send socket str (length str))))))))))
   stream)
- 
+
 #|
 
 ;;; queued Server using sb-concurrency. The code hassn't yet been adopted to
@@ -200,7 +200,7 @@ messages. Intitalize with an open parenthesis."
   (declare (type cl:stream socket-stream) (type input-stream fudi-stream))
   (loop
     for msg = (read-byte socket-stream nil nil)
-    while (input-stream-server-runn ing? fudi-stream)
+    while (input-stream-server-running? fudi-stream)
     if msg do (let ((receiver (input-stream-receiver fudi-stream)))
                 (if (incudine::receiver-status receiver)
                     (handler-case
@@ -308,7 +308,9 @@ messages. Intitalize with an open parenthesis."
           (slot-value (fudi::stream-socket s) 'usocket::stream))))
 
 (defun send (stream msg)
-  (if (and (output-stream-p stream) (stream-open? stream))
+  (if (and (output-stream-p stream)
+           (eql (fudi::stream-protocol stream) :tcp)
+           (stream-open? stream))
       (apply (output-stream-send-fn stream) msg)))
 
 ;;;(assert)
@@ -334,4 +336,4 @@ messages. Intitalize with an open parenthesis."
   (incudine:make-responder stream function))
 
 (defun incudine::remove-fudi-responder (resp)
-  (incudine:remove-responder resp))
+  (if resp (incudine:remove-responder resp)))
