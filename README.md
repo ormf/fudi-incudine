@@ -1,4 +1,12 @@
-# OVERVIEW
+# This Repository is deprecated!
+
+  The fudi-incudine repository has been completely integrated into
+  [Clamps](https://codeberg.org/ormf/clamps) and is developed
+  there. The archive here is kept for historical reasons only. This
+  archive will not receive further updates or patches. Issues and pull
+  requests will not be looked at here either, please submit your
+  patches and issue tickets on the Clamps repository on Codeberg, or
+  send them directly via good old email patches to the author.# OVERVIEW
 
 fudi is a common lisp package which establishes a bidirectional
 connection to pd for incudine using the FUDI protocol
